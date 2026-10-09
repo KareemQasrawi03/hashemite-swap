@@ -36,6 +36,31 @@ export async function fetchListings(): Promise<Listing[]> {
   return data as Listing[];
 }
 
+/* ---------- phone verification (Supabase phone OTP over SMS) ---------- */
+
+export class PhoneNotVerifiedError extends Error {}
+
+const toE164 = (p07: string) => '+962' + p07.slice(1);
+
+/** Texts a one-time code to a 07XXXXXXXX number. */
+export async function sendPhoneCode(phone: string): Promise<void> {
+  const { error } = await getSupabase().auth.signInWithOtp({ phone: toE164(phone) });
+  if (error) throw error;
+}
+
+/** Checks the code; on success the browser is signed in as that phone number. */
+export async function verifyPhoneCode(phone: string, code: string): Promise<void> {
+  const { error } = await getSupabase().auth.verifyOtp({ phone: toE164(phone), token: code, type: 'sms' });
+  if (error) throw error;
+}
+
+/** The SMS-verified number of the signed-in user as 07XXXXXXXX, or null. */
+export async function verifiedPhone(): Promise<string | null> {
+  const { data } = await getSupabase().auth.getSession();
+  const p = data.session?.user.phone; // e.g. "962791234567"
+  return p && p.startsWith('962') && data.session?.user.phone_confirmed_at ? '0' + p.slice(3) : null;
+}
+
 /* ---------- admin ---------- */
 
 export class NotAdminError extends Error {}
@@ -110,7 +135,11 @@ export async function createListing(l: NewListing): Promise<{ id: string; edit_t
     p_phone: l.phone,
     p_image_url: l.image_url,
   });
-  if (error) throw /rate_limited/.test(error.message) ? new RateLimitError(error.message) : error;
+  if (error) {
+    if (/rate_limited/.test(error.message)) throw new RateLimitError(error.message);
+    if (/phone_not_verified/.test(error.message)) throw new PhoneNotVerifiedError(error.message);
+    throw error;
+  }
   return data as { id: string; edit_token: string };
 }
 

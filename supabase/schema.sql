@@ -128,7 +128,22 @@ set search_path = public
 as $$
 declare
   r public.listings;
+  v_phone text;
 begin
+  -- The caller must have verified their number by SMS (Supabase phone OTP).
+  -- auth.users.phone is stored as 9627XXXXXXXX; listings use 07XXXXXXXX.
+  select '0' || substr(u.phone, 4) into v_phone
+  from auth.users u where u.id = auth.uid() and u.phone like '962%' and u.phone_confirmed_at is not null;
+  if v_phone is null or v_phone <> p_phone then
+    raise exception 'phone_not_verified' using errcode = 'P0001';
+  end if;
+
+  -- Every field is required, including the photo.
+  if coalesce(trim(p_title), '') = '' or coalesce(trim(p_description), '') = '' or coalesce(trim(p_want), '') = ''
+     or coalesce(trim(p_owner_name), '') = '' or coalesce(p_image_url, '') = '' then
+    raise exception 'missing_fields' using errcode = 'P0001';
+  end if;
+
   -- At most 5 listings per phone number per hour.
   if (select count(*) from public.listings l
       where l.phone = p_phone and l.created_at > now() - interval '1 hour') >= 5 then
@@ -159,7 +174,9 @@ $$;
 
 revoke all on function public.create_listing(text, text, text, text, text, text, text, text, text) from public;
 revoke all on function public.delete_listing(uuid, text) from public;
-grant execute on function public.create_listing(text, text, text, text, text, text, text, text, text) to anon, authenticated;
+revoke execute on function public.create_listing(text, text, text, text, text, text, text, text, text) from anon;
+-- Only signed-in (SMS-verified) users can post.
+grant execute on function public.create_listing(text, text, text, text, text, text, text, text, text) to authenticated;
 grant execute on function public.delete_listing(uuid, text) to anon, authenticated;
 
 -- =====================================================================
@@ -211,8 +228,9 @@ on conflict (id) do update
       allowed_mime_types = excluded.allowed_mime_types;
 
 drop policy if exists "anyone can upload listing images" on storage.objects;
-create policy "anyone can upload listing images" on storage.objects
-  for insert to anon, authenticated
+drop policy if exists "verified users can upload listing images" on storage.objects;
+create policy "verified users can upload listing images" on storage.objects
+  for insert to authenticated
   with check (bucket_id = 'listing-images');
 
 -- =====================================================================
