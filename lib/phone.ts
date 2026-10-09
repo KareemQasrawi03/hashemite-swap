@@ -13,3 +13,8 @@ export function normPhone(v: string): string | null {
 export function fmtPhone(p: string): string {
   return p.slice(0, 3) + ' ' + p.slice(3, 6) + ' ' + p.slice(6);
 }
+
+/** Wraps a number or code in Unicode LTR isolate marks so it keeps its order inside Arabic text. */
+export function ltr(s: string): string {
+  return '⁦' + s + '⁩';
+}

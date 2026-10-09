@@ -6,7 +6,7 @@ import Icon from './Icon';
 import { useApp } from './AppProvider';
 import { createListing, RateLimitError, uploadImage } from '@/lib/data';
 import { resizePhoto } from '@/lib/image';
-import { fmtPhone, normPhone } from '@/lib/phone';
+import { ltr, normPhone } from '@/lib/phone';
 import { LS } from '@/lib/storage';
 import { ADMIN_WHATSAPP, verifyCode, waLink } from '@/lib/whatsapp';
 
@@ -142,7 +142,7 @@ function AddListingForm() {
       <div className="modal">
         <div className="sheet confirm" role="dialog" aria-modal="true" aria-labelledby="waTitle">
           <h2 id="waTitle">{t('wa_title')}</h2>
-          <p className="who">{t('wa_hint', { p: fmtPhone(posted.phone) })}</p>
+          <p className="who">{t('wa_hint', { p: ltr(posted.phone) })}</p>
           <p>
             {t('wa_code')}: <strong className="phone">{posted.code}</strong>
           </p>
