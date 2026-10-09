@@ -229,3 +229,7 @@ a.rail-btn{text-decoration:none}
 .login{max-width:420px; display:flex; flex-direction:column; gap:14px}
 .login .err{color:var(--danger); font-size:13.5px}
 .tabs{display:flex; flex-wrap:wrap; gap:8px}
+.sheet.confirm{width:min(420px,100%); gap:10px}
+.sheet.confirm .form-actions{margin-top:8px}
+.btn-danger-solid{background:var(--danger); color:var(--surface); border-color:transparent; font-weight:600}
+.btn-danger-solid:hover{background:var(--danger); border-color:transparent; filter:brightness(1.08)}
