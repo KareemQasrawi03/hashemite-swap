@@ -128,15 +128,9 @@ set search_path = public
 as $$
 declare
   r public.listings;
-  v_phone text;
 begin
-  -- The caller must have verified their number by SMS (Supabase phone OTP).
-  -- auth.users.phone is stored as 9627XXXXXXXX; listings use 07XXXXXXXX.
-  select '0' || substr(u.phone, 4) into v_phone
-  from auth.users u where u.id = auth.uid() and u.phone like '962%' and u.phone_confirmed_at is not null;
-  if v_phone is null or v_phone <> p_phone then
-    raise exception 'phone_not_verified' using errcode = 'P0001';
-  end if;
+  -- Phone ownership is checked by an admin before approval: the poster sends the
+  -- listing's code over WhatsApp from that number (see the admin page).
 
   -- Every field is required, including the photo.
   if coalesce(trim(p_title), '') = '' or coalesce(trim(p_description), '') = '' or coalesce(trim(p_want), '') = ''
@@ -174,9 +168,7 @@ $$;
 
 revoke all on function public.create_listing(text, text, text, text, text, text, text, text, text) from public;
 revoke all on function public.delete_listing(uuid, text) from public;
-revoke execute on function public.create_listing(text, text, text, text, text, text, text, text, text) from anon;
--- Only signed-in (SMS-verified) users can post.
-grant execute on function public.create_listing(text, text, text, text, text, text, text, text, text) to authenticated;
+grant execute on function public.create_listing(text, text, text, text, text, text, text, text, text) to anon, authenticated;
 grant execute on function public.delete_listing(uuid, text) to anon, authenticated;
 
 -- =====================================================================
@@ -228,9 +220,8 @@ on conflict (id) do update
       allowed_mime_types = excluded.allowed_mime_types;
 
 drop policy if exists "anyone can upload listing images" on storage.objects;
-drop policy if exists "verified users can upload listing images" on storage.objects;
-create policy "verified users can upload listing images" on storage.objects
-  for insert to authenticated
+create policy "anyone can upload listing images" on storage.objects
+  for insert to anon, authenticated
   with check (bucket_id = 'listing-images');
 
 -- =====================================================================

@@ -14,7 +14,9 @@ import {
   fetchAllListings,
   NotAdminError,
 } from '@/lib/data';
+import { fmtPhone } from '@/lib/phone';
 import type { Listing } from '@/lib/types';
+import { verifyCode } from '@/lib/whatsapp';
 
 type Tab = 'pending' | 'approved';
 
@@ -163,6 +165,9 @@ function Dashboard({ admin, onSignOut }: { admin: string; onSignOut: () => void 
               l={l}
               actions={
                 <div className="admin-actions">
+                  {l.status === 'pending' && l.phone && (
+                    <p className="wa-check">{t('admin_wa_check', { c: verifyCode(l.id), p: fmtPhone(l.phone) })}</p>
+                  )}
                   {l.status === 'pending' && (
                     <button className="btn btn-sm btn-primary" type="button" onClick={() => act(() => approveListing(l.id), t('approved_ok'))}>
                       <Icon name="shield" size={16} />

@@ -4,22 +4,13 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Icon from './Icon';
 import { useApp } from './AppProvider';
-import {
-  createListing,
-  PhoneNotVerifiedError,
-  RateLimitError,
-  sendPhoneCode,
-  uploadImage,
-  verifiedPhone,
-  verifyPhoneCode,
-} from '@/lib/data';
+import { createListing, RateLimitError, uploadImage } from '@/lib/data';
 import { resizePhoto } from '@/lib/image';
 import { fmtPhone, normPhone } from '@/lib/phone';
 import { LS } from '@/lib/storage';
+import { ADMIN_WHATSAPP, verifyCode, waLink } from '@/lib/whatsapp';
 
 type ErrKey = 'title' | 'desc' | 'want' | 'college' | 'owner' | 'phone' | 'photo' | 'cat' | 'cond';
-
-const RESEND_SECONDS = 60;
 
 export default function AddListingModal() {
   const { addOpen } = useApp();
@@ -45,17 +36,12 @@ function AddListingForm() {
   const [errs, setErrs] = useState<Partial<Record<ErrKey, string>>>({});
   const [busy, setBusy] = useState(false);
 
-  // SMS verification
-  const [verified, setVerified] = useState<string | null>(null); // 07XXXXXXXX once confirmed
-  const [codeFor, setCodeFor] = useState<string | null>(null); // number the last code was sent to
-  const [code, setCode] = useState('');
-  const [cooldown, setCooldown] = useState(0);
-  const [otpBusy, setOtpBusy] = useState(false);
+  // Set after a successful post: shows the WhatsApp confirmation step.
+  const [posted, setPosted] = useState<{ code: string; phone: string } | null>(null);
 
   const titleRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const codeRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const id = setTimeout(() => titleRef.current?.focus(), 30);
@@ -68,22 +54,6 @@ function AddListingForm() {
       document.removeEventListener('keydown', onKey);
     };
   }, [closeAdd]);
-
-  // A number verified earlier in this browser is reused.
-  useEffect(() => {
-    verifiedPhone().then((p) => {
-      if (p) {
-        setVerified(p);
-        setPhone(p);
-      }
-    }, () => {});
-  }, []);
-
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const id = setTimeout(() => setCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(id);
-  }, [cooldown]);
 
   useEffect(() => () => { if (photo) URL.revokeObjectURL(photo.url); }, [photo]);
 
@@ -107,45 +77,6 @@ function AddListingForm() {
     if (fileRef.current) fileRef.current.value = '';
   }
 
-  async function sendCode() {
-    const ph = normPhone(phone.trim());
-    if (!ph) return setErr('phone', t('e_phone'));
-    setOtpBusy(true);
-    try {
-      await sendPhoneCode(ph);
-      setCodeFor(ph);
-      setCode('');
-      setCooldown(RESEND_SECONDS);
-      setErr('phone');
-      setTimeout(() => codeRef.current?.focus(), 0);
-    } catch {
-      setErr('phone', t('otp_send_fail'));
-    }
-    setOtpBusy(false);
-  }
-
-  async function checkCode() {
-    if (!codeFor || !/^\d{4,8}$/.test(code.trim())) return setErr('phone', t('otp_bad'));
-    setOtpBusy(true);
-    try {
-      await verifyPhoneCode(codeFor, code.trim());
-      setVerified(codeFor);
-      setPhone(codeFor);
-      setCodeFor(null);
-      setErr('phone');
-    } catch {
-      setErr('phone', t('otp_bad'));
-    }
-    setOtpBusy(false);
-  }
-
-  function changeNumber() {
-    setVerified(null);
-    setCodeFor(null);
-    setCode('');
-    setPhone('');
-  }
-
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (site) return closeAdd();
@@ -158,7 +89,8 @@ function AddListingForm() {
     if (!cat) next.cat = t('e_req');
     if (!cond) next.cond = t('e_req');
     if (!owner.trim()) next.owner = t('e_req');
-    if (!verified) next.phone = normPhone(phone.trim()) ? t('e_verify') : t('e_phone');
+    const ph = normPhone(phone.trim());
+    if (!ph) next.phone = t('e_phone');
     if (!photo) next.photo = t('e_photo');
     setErrs(next);
     if (Object.keys(next).length) {
@@ -183,27 +115,48 @@ function AddListingForm() {
         condition: cond,
         college,
         owner_name: owner.trim(),
-        phone: verified!,
+        phone: ph!,
         image_url,
       });
       addToken(id, edit_token);
       LS.set('hu.last', now);
-      closeAdd();
-      if (pathname !== '/market') router.push('/market');
-      toast(t('posted'));
       refresh();
+      if (ADMIN_WHATSAPP) return setPosted({ code: verifyCode(id), phone: ph! });
+      finish();
     } catch (err) {
-      if (err instanceof PhoneNotVerifiedError) {
-        setVerified(null);
-        setErr('phone', t('e_verify'));
-      } else {
-        toast(err instanceof RateLimitError ? t('wait') : t('post_fail'));
-      }
+      toast(err instanceof RateLimitError ? t('wait') : t('post_fail'));
       setBusy(false);
     }
   }
 
+  function finish() {
+    closeAdd();
+    if (pathname !== '/market') router.push('/market');
+    toast(t('posted'));
+  }
+
   const fieldCls = (k: ErrKey, extra = '') => `field${extra}${errs[k] ? ' bad' : ''}`;
+
+  if (posted) {
+    return (
+      <div className="modal">
+        <div className="sheet confirm" role="dialog" aria-modal="true" aria-labelledby="waTitle">
+          <h2 id="waTitle">{t('wa_title')}</h2>
+          <p className="who">{t('wa_hint', { p: fmtPhone(posted.phone) })}</p>
+          <p>
+            {t('wa_code')}: <strong className="phone">{posted.code}</strong>
+          </p>
+          <div className="form-actions">
+            <button className="btn" type="button" onClick={finish}>{t('done')}</button>
+            <a className="btn btn-primary" href={waLink(ADMIN_WHATSAPP, t('wa_msg', { c: posted.code }))} target="_blank" rel="noopener noreferrer">
+              <Icon name="chat" size={18} />
+              <span>{t('wa_btn')}</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="modal" onMouseDown={(e) => e.target === e.currentTarget && closeAdd()}>
@@ -265,64 +218,8 @@ function AddListingForm() {
 
             <div className={fieldCls('phone', ' full')}>
               <label htmlFor="f-phone">{t('f_phone')}</label>
-              {verified ? (
-                <div className="otp-row">
-                  <span className="phone">{fmtPhone(verified)}</span>
-                  <span className="verified"><Icon name="shield" size={16} />{t('otp_ok')}</span>
-                  <button className="link-btn" type="button" onClick={changeNumber}>{t('otp_change')}</button>
-                </div>
-              ) : (
-                <>
-                  <div className="otp-row">
-                    <input
-                      id="f-phone"
-                      required
-                      inputMode="tel"
-                      dir="ltr"
-                      maxLength={20}
-                      autoComplete="tel"
-                      placeholder="07X XXX XXXX"
-                      value={phone}
-                      onChange={(e) => {
-                        setPhone(e.target.value);
-                        setCodeFor(null);
-                      }}
-                    />
-                    <button className="btn btn-sm" type="button" disabled={otpBusy || cooldown > 0} onClick={sendCode}>
-                      {cooldown > 0 ? t('otp_resend_in', { n: cooldown }) : codeFor ? t('otp_resend') : t('otp_send')}
-                    </button>
-                  </div>
-                  {codeFor ? (
-                    <>
-                      <small>{t('otp_sent', { p: fmtPhone(codeFor) })}</small>
-                      <div className="otp-row">
-                        <input
-                          ref={codeRef}
-                          aria-label={t('otp_code')}
-                          placeholder={t('otp_code')}
-                          inputMode="numeric"
-                          autoComplete="one-time-code"
-                          dir="ltr"
-                          maxLength={8}
-                          value={code}
-                          onChange={(e) => setCode(e.target.value.replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))))}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              checkCode();
-                            }
-                          }}
-                        />
-                        <button className="btn btn-sm btn-primary" type="button" disabled={otpBusy} onClick={checkCode}>
-                          {t('otp_verify')}
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <small>{t('f_phone_hint')}</small>
-                  )}
-                </>
-              )}
+              <input id="f-phone" required inputMode="tel" dir="ltr" maxLength={20} autoComplete="tel" placeholder="07X XXX XXXX" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <small>{t('f_phone_hint')}</small>
               <span className="err">{errs.phone}</span>
             </div>
 
