@@ -2,7 +2,7 @@
  * WhatsApp number (07XXXXXXXX) that receives listing confirmations from posters.
  * Admins compare the sender with the listing's phone before approving. Empty hides the step.
  */
-export const ADMIN_WHATSAPP = '';
+export const ADMIN_WHATSAPP = '0788731107';
 
 /** Short code a poster sends to prove they own the listing's phone number. */
 export function verifyCode(listingId: string): string {
