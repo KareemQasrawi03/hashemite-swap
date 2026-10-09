@@ -1,13 +1,14 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, type ReactNode } from 'react';
 import Icon from './Icon';
 import ConfirmButton from './ConfirmButton';
 import { useApp } from './AppProvider';
 import { fmtPhone } from '@/lib/phone';
 import type { Listing } from '@/lib/types';
 
-export default function ListingCard({ l }: { l: Listing }) {
+/** `actions` replaces the owner's delete button (used by the admin page). */
+export default function ListingCard({ l, actions }: { l: Listing; actions?: ReactNode }) {
   const { t, nm, pick, lookups, isMine, removeListing, refresh, toast } = useApp();
   const phoneRef = useRef<HTMLSpanElement>(null);
 
@@ -51,7 +52,9 @@ export default function ListingCard({ l }: { l: Listing }) {
       <div className="media">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         {l.image_url ? <img src={l.image_url} alt="" loading="lazy" /> : <Icon name={catIcon} size={44} />}
-        {l.is_example ? (
+        {l.status === 'pending' ? (
+          <span className="tag pending">{t('tag_pending')}</span>
+        ) : l.is_example ? (
           <span className="tag">{t('tag_ex')}</span>
         ) : mine ? (
           <span className="tag mine">{t('tag_mine')}</span>
@@ -108,7 +111,7 @@ export default function ListingCard({ l }: { l: Listing }) {
               </a>
             </div>
           )}
-          {mine && (
+          {actions ?? (mine && (
             <ConfirmButton
               className="btn btn-sm btn-danger"
               icon={<Icon name="trash" size={16} />}
@@ -116,7 +119,7 @@ export default function ListingCard({ l }: { l: Listing }) {
               confirmLabel={t('del_sure')}
               onConfirm={del}
             />
-          )}
+          ))}
         </div>
       </div>
     </article>

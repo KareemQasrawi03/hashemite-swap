@@ -26,6 +26,7 @@ export type Listing = {
   phone: string | null;
   image_url: string | null;
   is_example: boolean;
+  status: 'pending' | 'approved';
 };
 
 export type NewListing = {

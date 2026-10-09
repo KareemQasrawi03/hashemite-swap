@@ -54,6 +54,17 @@ create table if not exists public.listings (
   constraint listings_phone_required check (is_example or phone is not null)
 );
 
+-- Moderation: new listings wait for an admin. Rows that existed before this column are kept approved.
+alter table public.listings add column if not exists status text not null default 'approved'
+  check (status in ('pending', 'approved'));
+alter table public.listings alter column status set default 'pending';
+
+-- Supabase Auth users allowed to moderate. Create the users in the dashboard, then see "Admins" below.
+create table if not exists public.admins (
+  user_id uuid primary key references auth.users(id) on delete cascade
+);
+
+create index if not exists listings_status_created_idx on public.listings (status, created_at desc);
 create index if not exists listings_created_at_idx on public.listings (created_at desc);
 create index if not exists listings_phone_created_idx on public.listings (phone, created_at desc);
 
@@ -64,21 +75,37 @@ alter table public.colleges   enable row level security;
 alter table public.categories enable row level security;
 alter table public.conditions enable row level security;
 alter table public.listings   enable row level security;
+alter table public.admins     enable row level security;
+
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.admins where user_id = auth.uid());
+$$;
+revoke all on function public.is_admin() from public;
+grant execute on function public.is_admin() to anon, authenticated;
 
 drop policy if exists "colleges are public"   on public.colleges;
 drop policy if exists "categories are public" on public.categories;
 drop policy if exists "conditions are public" on public.conditions;
 drop policy if exists "listings are public"   on public.listings;
+drop policy if exists "approved listings are public" on public.listings;
 create policy "colleges are public"   on public.colleges   for select using (true);
 create policy "categories are public" on public.categories for select using (true);
 create policy "conditions are public" on public.conditions for select using (true);
-create policy "listings are public"   on public.listings   for select using (true);
+-- Visitors see approved listings only; admins also see the review queue.
+create policy "approved listings are public" on public.listings
+  for select using (status = 'approved' or public.is_admin());
 
-revoke all on public.colleges, public.categories, public.conditions, public.listings from anon, authenticated;
+revoke all on public.colleges, public.categories, public.conditions, public.listings, public.admins from anon, authenticated;
 grant select on public.colleges, public.categories, public.conditions to anon, authenticated;
 -- Every column except edit_token. Inserts and deletes go only through the functions below.
 grant select (id, created_at, title, title_en, description, description_en, want, want_en,
-              category, condition, college, owner_name, phone, image_url, is_example)
+              category, condition, college, owner_name, phone, image_url, is_example, status)
   on public.listings to anon, authenticated;
 
 -- =====================================================================
@@ -136,6 +163,44 @@ grant execute on function public.create_listing(text, text, text, text, text, te
 grant execute on function public.delete_listing(uuid, text) to anon, authenticated;
 
 -- =====================================================================
+-- Admin moderation (callers must be in public.admins)
+-- =====================================================================
+create or replace function public.approve_listing(p_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'not_admin' using errcode = '42501';
+  end if;
+  update public.listings set status = 'approved' where id = p_id;
+  return found;
+end;
+$$;
+
+create or replace function public.admin_delete_listing(p_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'not_admin' using errcode = '42501';
+  end if;
+  delete from public.listings where id = p_id;
+  return found;
+end;
+$$;
+
+revoke all on function public.approve_listing(uuid) from public;
+revoke all on function public.admin_delete_listing(uuid) from public;
+grant execute on function public.approve_listing(uuid) to authenticated;
+grant execute on function public.admin_delete_listing(uuid) to authenticated;
+
+-- =====================================================================
 -- Storage bucket for item photos (resized to <=640px JPEG in the browser)
 -- =====================================================================
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -185,8 +250,8 @@ insert into public.conditions (id, name_ar, name_en, sort) values
 on conflict (id) do update set name_ar = excluded.name_ar, name_en = excluded.name_en, sort = excluded.sort;
 
 -- Example listings: shown only while there are no real listings yet.
-insert into public.listings (is_example, category, college, condition, title, title_en, description, description_en, want, want_en, created_at)
-select true, v.*
+insert into public.listings (is_example, status, category, college, condition, title, title_en, description, description_en, want, want_en, created_at)
+select true, 'approved', v.*
 from (values
   ('books', 'econ', 'good',
    'كتاب مبادئ المحاسبة المالية', 'Financial accounting textbook',
@@ -222,3 +287,14 @@ from (values
    'سماعات بلوتوث', 'Bluetooth earbuds', now() - interval '8 minutes')
 ) as v(category, college, condition, title, title_en, description, description_en, want, want_en, created_at)
 where not exists (select 1 from public.listings where is_example);
+
+-- =====================================================================
+-- Admins
+-- First create each admin in Supabase dashboard -> Authentication -> Users ->
+-- Add user -> Create new user (tick "Auto Confirm User"). The site's login form
+-- turns a username into <username>@example.com, so use these emails:
+-- =====================================================================
+insert into public.admins (user_id)
+select id from auth.users
+where lower(email) in ('eyadqasrawi@example.com', 'kareemqasrawi@example.com')
+on conflict (user_id) do nothing;

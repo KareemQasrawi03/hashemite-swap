@@ -224,3 +224,8 @@ p{margin:0}
 @media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important; scroll-behavior:auto!important}}
 .toolbar select{font:inherit; width:100%; min-width:0; min-height:44px; padding:.55rem .8rem; border-radius:10px; border:1px solid var(--line); background:var(--surface); color:var(--fg)}
 a.rail-btn{text-decoration:none}
+.tag.pending{background:var(--swap-soft); color:var(--swap); border-color:transparent}
+.admin-actions{display:flex; flex-wrap:wrap; gap:8px}
+.login{max-width:420px; display:flex; flex-direction:column; gap:14px}
+.login .err{color:var(--danger); font-size:13.5px}
+.tabs{display:flex; flex-wrap:wrap; gap:8px}

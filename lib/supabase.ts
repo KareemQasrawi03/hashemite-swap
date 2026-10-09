@@ -10,7 +10,11 @@ let client: SupabaseClient | null = null;
 export function getSupabase(): SupabaseClient {
   if (!client) {
     if (!url || !key) throw new Error('Supabase is not configured: set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local');
-    client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+    // Only admins sign in; keeping their session in the browser lets /admin survive a reload.
+    const browser = typeof window !== 'undefined';
+    client = createClient(url, key, {
+      auth: { persistSession: browser, autoRefreshToken: browser, storageKey: 'hu.auth' },
+    });
   }
   return client;
 }

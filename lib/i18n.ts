@@ -39,8 +39,13 @@ const ar = {
   foot: 'مقايضة الهاشمية · مبادرة طلابية',
   loading: 'جارٍ تحميل العروض…', net_err: 'تعذّر الاتصال بالخادم. تحقق من الإنترنت وحاول مرة أخرى.', retry: 'إعادة المحاولة',
   not_configured: 'الموقع غير مربوط بقاعدة البيانات بعد. أضف مفاتيح Supabase في ملف ‎.env.local‎.',
-  wait: 'انتظر قليلًا قبل نشر عرض آخر.', posted: 'تم نشر عرضك وأصبح ظاهرًا للجميع.', post_fail: 'تعذّر نشر العرض. حاول مرة أخرى.', del_fail: 'تعذّر حذف العرض. حاول مرة أخرى.',
+  wait: 'انتظر قليلًا قبل نشر عرض آخر.', posted: 'تم إرسال عرضك للمراجعة، وسيظهر للجميع بعد موافقة الإدارة.', post_fail: 'تعذّر نشر العرض. حاول مرة أخرى.', del_fail: 'تعذّر حذف العرض. حاول مرة أخرى.',
   f_public: 'سيظهر رقمك لكل زوار الموقع، فلا تكتب أي بيانات لا تريد نشرها.',
+  admin_title: 'لوحة الإدارة', admin_user: 'اسم المستخدم', admin_pass: 'كلمة المرور', admin_login: 'تسجيل الدخول', admin_logout: 'تسجيل الخروج',
+  admin_bad: 'اسم المستخدم أو كلمة المرور غير صحيحة.', admin_not: 'هذا الحساب ليس حساب إدارة.', admin_hi: 'مسجّل الدخول باسم {u}',
+  admin_pending: 'بانتظار الموافقة ({n})', admin_approved: 'المنشورة ({n})', admin_none: 'لا توجد عروض هنا حاليًا.',
+  approve: 'موافقة ونشر', reject: 'رفض وحذف', reject_sure: 'تأكيد الرفض؟', approved_ok: 'تمت الموافقة ونُشر العرض.',
+  action_fail: 'تعذّر تنفيذ العملية. حاول مرة أخرى.', tag_pending: 'قيد المراجعة',
 };
 
 export type MsgKey = keyof typeof ar;
@@ -84,8 +89,13 @@ const en: Record<MsgKey, string> = {
   foot: 'Hashemite Swap · a student initiative',
   loading: 'Loading listings…', net_err: 'Could not reach the server. Check your connection and try again.', retry: 'Try again',
   not_configured: 'The site is not connected to the database yet. Add the Supabase keys to .env.local.',
-  wait: 'Please wait a moment before posting another listing.', posted: 'Your listing is live for everyone.', post_fail: 'Could not publish the listing. Try again.', del_fail: 'Could not delete the listing. Try again.',
+  wait: 'Please wait a moment before posting another listing.', posted: 'Your listing was sent for review and will appear once an admin approves it.', post_fail: 'Could not publish the listing. Try again.', del_fail: 'Could not delete the listing. Try again.',
   f_public: 'Your number will be visible to everyone who visits the site, so only enter details you are happy to publish.',
+  admin_title: 'Admin', admin_user: 'Username', admin_pass: 'Password', admin_login: 'Sign in', admin_logout: 'Sign out',
+  admin_bad: 'Wrong username or password.', admin_not: 'This account is not an admin.', admin_hi: 'Signed in as {u}',
+  admin_pending: 'Awaiting approval ({n})', admin_approved: 'Published ({n})', admin_none: 'Nothing here right now.',
+  approve: 'Approve & publish', reject: 'Reject & delete', reject_sure: 'Confirm reject?', approved_ok: 'Approved and published.',
+  action_fail: 'Action failed. Try again.', tag_pending: 'Pending',
 };
 
 export const MESSAGES: Record<Lang, Record<MsgKey, string>> = { ar, en };
