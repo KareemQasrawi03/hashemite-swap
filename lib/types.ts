@@ -26,7 +26,9 @@ export type Listing = {
   phone: string | null;
   image_url: string | null;
   is_example: boolean;
-  status: 'pending' | 'approved';
+  status: 'pending' | 'approved' | 'swapped';
+  /** Only selected on the admin page. */
+  swapped_at?: string | null;
 };
 
 export type NewListing = {

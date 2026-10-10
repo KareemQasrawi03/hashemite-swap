@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { deleteListing, fetchListings } from '@/lib/data';
+import { deleteListing, fetchListings, markSwapped } from '@/lib/data';
 import { MESSAGES, type MsgKey } from '@/lib/i18n';
 import { LS } from '@/lib/storage';
 import type { Lang, Listing, Lookups, Named, Theme } from '@/lib/types';
@@ -25,7 +25,8 @@ type AppCtx = {
   isMine: (id: string) => boolean;
   myIds: () => string[];
   addToken: (id: string, token: string) => void;
-  removeListing: (id: string) => Promise<void>;
+  /** Removes one of my listings; with swapped=true it is recorded as a completed swap instead of deleted. */
+  removeListing: (id: string, swapped?: boolean) => Promise<void>;
   toastMsg: string | null;
   toast: (msg: string) => void;
   addOpen: boolean;
@@ -156,8 +157,10 @@ export default function AppProvider({
     [writeTokens],
   );
   const removeListing = useCallback(
-    async (id: string) => {
-      await deleteListing(id, tokensRef.current[id] || '');
+    async (id: string, swapped = false) => {
+      const token = tokensRef.current[id] || '';
+      if (swapped) await markSwapped(id, token);
+      else await deleteListing(id, token);
       const next = { ...tokensRef.current };
       delete next[id];
       writeTokens(next);

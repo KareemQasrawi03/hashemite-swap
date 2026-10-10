@@ -69,15 +69,15 @@ async function isAdmin(): Promise<boolean> {
   return !error && data === true;
 }
 
-/** Every listing (pending and approved), for the admin page. */
+/** Every listing (pending, approved and swapped), for the admin pages. */
 export async function fetchAllListings(): Promise<Listing[]> {
   const { data, error } = await getSupabase()
     .from('listings')
-    .select(LISTING_COLS)
+    .select(LISTING_COLS + ',swapped_at')
     .order('created_at', { ascending: false })
     .limit(500);
   if (error) throw error;
-  return data as Listing[];
+  return data as unknown as Listing[];
 }
 
 export async function approveListing(id: string): Promise<void> {
@@ -115,6 +115,13 @@ export async function createListing(l: NewListing): Promise<{ id: string; edit_t
     throw error;
   }
   return data as { id: string; edit_token: string };
+}
+
+/** Owner closes an approved listing because the swap happened; it leaves the board but counts in the stats. */
+export async function markSwapped(id: string, token: string): Promise<boolean> {
+  const { data, error } = await getSupabase().rpc('mark_swapped', { p_id: id, p_token: token });
+  if (error) throw error;
+  return Boolean(data);
 }
 
 /** Resolves true if a row was deleted; rejects only on network/server errors. */

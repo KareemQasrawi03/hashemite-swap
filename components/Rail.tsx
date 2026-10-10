@@ -17,7 +17,10 @@ export default function Rail() {
   const path = usePathname();
   return (
     <nav className="rail" aria-label={t('nav_label')}>
-      <div className="brand-mark" aria-hidden="true">ه</div>
+      <Link href="/" className="brand-mark" aria-label={t('nav_home')}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-mark.svg" alt="" width={48} height={48} />
+      </Link>
       {ITEMS.map((it) => (
         <Link
           key={it.href}

@@ -2,14 +2,14 @@
 
 import { useRef, type ReactNode } from 'react';
 import Icon from './Icon';
-import ConfirmButton from './ConfirmButton';
+import OwnerDeleteButton from './OwnerDeleteButton';
 import { useApp } from './AppProvider';
 import { fmtPhone } from '@/lib/phone';
 import type { Listing } from '@/lib/types';
 
 /** `actions` replaces the owner's delete button (used by the admin page). */
 export default function ListingCard({ l, actions }: { l: Listing; actions?: ReactNode }) {
-  const { t, nm, pick, lookups, isMine, removeListing, refresh, toast } = useApp();
+  const { t, nm, pick, lookups, isMine, toast } = useApp();
   const phoneRef = useRef<HTMLSpanElement>(null);
 
   const cat = lookups.categories.find((c) => c.id === l.category) ?? lookups.categories[lookups.categories.length - 1];
@@ -37,16 +37,6 @@ export default function ListingCard({ l, actions }: { l: Listing; actions?: Reac
     }
   }
 
-  async function del() {
-    try {
-      await removeListing(l.id);
-      toast(t('deleted'));
-    } catch {
-      toast(t('del_fail'));
-    }
-    refresh();
-  }
-
   return (
     <article className="card">
       <div className="media">
@@ -54,6 +44,8 @@ export default function ListingCard({ l, actions }: { l: Listing; actions?: Reac
         {l.image_url ? <img src={l.image_url} alt="" loading="lazy" /> : <Icon name={catIcon} size={44} />}
         {l.status === 'pending' ? (
           <span className="tag pending">{t('tag_pending')}</span>
+        ) : l.status === 'swapped' ? (
+          <span className="tag swapped">{t('tag_swapped')}</span>
         ) : l.is_example ? (
           <span className="tag">{t('tag_ex')}</span>
         ) : mine ? (
@@ -111,15 +103,7 @@ export default function ListingCard({ l, actions }: { l: Listing; actions?: Reac
               </a>
             </div>
           )}
-          {actions ?? (mine && (
-            <ConfirmButton
-              className="btn btn-sm btn-danger"
-              icon={<Icon name="trash" size={16} />}
-              label={t('del')}
-              confirmLabel={t('del_sure')}
-              onConfirm={del}
-            />
-          ))}
+          {actions ?? (mine && <OwnerDeleteButton id={l.id} />)}
         </div>
       </div>
     </article>

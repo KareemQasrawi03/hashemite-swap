@@ -58,6 +58,10 @@ create table if not exists public.listings (
 alter table public.listings add column if not exists status text not null default 'approved'
   check (status in ('pending', 'approved'));
 alter table public.listings alter column status set default 'pending';
+-- 'swapped': the owner removed the listing because the swap happened. Kept (hidden) for the admin stats.
+alter table public.listings drop constraint if exists listings_status_check;
+alter table public.listings add constraint listings_status_check check (status in ('pending', 'approved', 'swapped'));
+alter table public.listings add column if not exists swapped_at timestamptz;
 
 -- Supabase Auth users allowed to moderate. Create the users in the dashboard, then see "Admins" below.
 create table if not exists public.admins (
@@ -105,7 +109,7 @@ revoke all on public.colleges, public.categories, public.conditions, public.list
 grant select on public.colleges, public.categories, public.conditions to anon, authenticated;
 -- Every column except edit_token. Inserts and deletes go only through the functions below.
 grant select (id, created_at, title, title_en, description, description_en, want, want_en,
-              category, condition, college, owner_name, phone, image_url, is_example, status)
+              category, condition, college, owner_name, phone, image_url, is_example, status, swapped_at)
   on public.listings to anon, authenticated;
 
 -- =====================================================================
@@ -165,6 +169,23 @@ begin
   return found;
 end;
 $$;
+
+-- Owner closes their listing because the swap happened: hidden from visitors, counted in the admin stats.
+create or replace function public.mark_swapped(p_id uuid, p_token text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $
+begin
+  update public.listings set status = 'swapped', swapped_at = now()
+  where id = p_id and edit_token = p_token and status = 'approved' and not is_example;
+  return found;
+end;
+$;
+
+revoke all on function public.mark_swapped(uuid, text) from public;
+grant execute on function public.mark_swapped(uuid, text) to anon, authenticated;
 
 revoke all on function public.create_listing(text, text, text, text, text, text, text, text, text) from public;
 revoke all on function public.delete_listing(uuid, text) from public;

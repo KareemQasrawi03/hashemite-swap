@@ -1,14 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
 import Icon from './Icon';
+import Dialog from './Dialog';
 import { useApp } from './AppProvider';
 import { createListing, RateLimitError, uploadImage } from '@/lib/data';
 import { resizePhoto } from '@/lib/image';
-import { ltr, normPhone } from '@/lib/phone';
+import { normPhone } from '@/lib/phone';
 import { LS } from '@/lib/storage';
-import { ADMIN_WHATSAPP, verifyCode, waLink } from '@/lib/whatsapp';
 
 type ErrKey = 'title' | 'desc' | 'want' | 'college' | 'owner' | 'phone' | 'photo' | 'cat' | 'cond';
 
@@ -20,8 +19,6 @@ export default function AddListingModal() {
 
 function AddListingForm() {
   const { t, nm, lookups, toast, refresh, addToken, closeAdd } = useApp();
-  const router = useRouter();
-  const pathname = usePathname();
 
   const [title, setTitle] = useState('');
   const [cat, setCat] = useState(lookups.categories[0]?.id ?? '');
@@ -36,8 +33,8 @@ function AddListingForm() {
   const [errs, setErrs] = useState<Partial<Record<ErrKey, string>>>({});
   const [busy, setBusy] = useState(false);
 
-  // Set after a successful post: shows the WhatsApp confirmation step.
-  const [posted, setPosted] = useState<{ code: string; phone: string } | null>(null);
+  // After a successful post the form is replaced by a note that the listing awaits admin review.
+  const [posted, setPosted] = useState(false);
 
   const titleRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -121,40 +118,20 @@ function AddListingForm() {
       addToken(id, edit_token);
       LS.set('hu.last', now);
       refresh();
-      if (ADMIN_WHATSAPP) return setPosted({ code: verifyCode(id), phone: ph! });
-      finish();
+      setPosted(true);
     } catch (err) {
       toast(err instanceof RateLimitError ? t('wait') : t('post_fail'));
       setBusy(false);
     }
   }
 
-  function finish() {
-    closeAdd();
-    if (pathname !== '/market') router.push('/market');
-    toast(t('posted'));
-  }
-
   const fieldCls = (k: ErrKey, extra = '') => `field${extra}${errs[k] ? ' bad' : ''}`;
 
   if (posted) {
     return (
-      <div className="modal">
-        <div className="sheet confirm" role="dialog" aria-modal="true" aria-labelledby="waTitle">
-          <h2 id="waTitle">{t('wa_title')}</h2>
-          <p className="who">{t('wa_hint', { p: ltr(posted.phone) })}</p>
-          <p>
-            {t('wa_code')}: <strong className="phone">{posted.code}</strong>
-          </p>
-          <div className="form-actions">
-            <button className="btn" type="button" onClick={finish}>{t('done')}</button>
-            <a className="btn btn-primary" href={waLink(ADMIN_WHATSAPP, t('wa_msg', { c: posted.code }))} target="_blank" rel="noopener noreferrer">
-              <Icon name="chat" size={18} />
-              <span>{t('wa_btn')}</span>
-            </a>
-          </div>
-        </div>
-      </div>
+      <Dialog title={t('review_title')} description={t('review_hint')} onClose={closeAdd}>
+        <button data-autofocus className="btn btn-primary" type="button" onClick={closeAdd}>{t('ok')}</button>
+      </Dialog>
     );
   }
 
@@ -223,7 +200,7 @@ function AddListingForm() {
               <span className="err">{errs.phone}</span>
             </div>
 
-            <p className="pubnote full">{t('f_public')}</p>
+            <p className="pubnote full">{t('f_review')} {t('f_public')}</p>
             <div className="hp" aria-hidden="true">
               <label>
                 Website
