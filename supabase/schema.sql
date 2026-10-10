@@ -176,13 +176,13 @@ returns boolean
 language plpgsql
 security definer
 set search_path = public
-as $
+as $$
 begin
   update public.listings set status = 'swapped', swapped_at = now()
   where id = p_id and edit_token = p_token and status = 'approved' and not is_example;
   return found;
 end;
-$;
+$$;
 
 revoke all on function public.mark_swapped(uuid, text) from public;
 grant execute on function public.mark_swapped(uuid, text) to anon, authenticated;
