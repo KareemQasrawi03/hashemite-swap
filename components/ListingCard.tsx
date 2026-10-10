@@ -5,12 +5,13 @@ import Icon from './Icon';
 import OwnerDeleteButton from './OwnerDeleteButton';
 import { useApp } from './AppProvider';
 import { fmtPhone } from '@/lib/phone';
+import { fullDate, timeAgo } from '@/lib/time';
 import type { Listing } from '@/lib/types';
 import Spinner from './Spinner';
 
 /** `actions` replaces the owner's delete button (used by the admin page). */
 export default function ListingCard({ l, actions }: { l: Listing; actions?: ReactNode }) {
-  const { t, nm, pick, lookups, isMine, toast } = useApp();
+  const { t, nm, pick, lookups, isMine, toast, lang } = useApp();
   const phoneRef = useRef<HTMLSpanElement>(null);
   const [imgReady, setImgReady] = useState(false);
 
@@ -85,6 +86,10 @@ export default function ListingCard({ l, actions }: { l: Listing; actions?: Reac
               {nm(col)}
             </span>
           )}
+          <span>
+            <Icon name="clock" size={15} />
+            <time dateTime={l.created_at} title={fullDate(l.created_at, lang)}>{timeAgo(l.created_at, lang)}</time>
+          </span>
         </div>
         {desc && <p className="desc">{desc}</p>}
         <div className="want">
