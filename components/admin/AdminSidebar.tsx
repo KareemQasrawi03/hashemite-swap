@@ -26,22 +26,24 @@ export default function AdminSidebar() {
         <img src="/logo-mark.svg" alt="" width={40} height={40} />
         <span>{t('admin_title')}</span>
       </Link>
-      {ITEMS.map((it) => (
-        <Link key={it.href} href={it.href} className="side-link" aria-current={path === it.href ? 'page' : undefined}>
-          <Icon name={it.icon} size={20} />
-          <span>{t(it.label)}</span>
-          {it.count && counts[it.count] > 0 && <span className="side-badge">{counts[it.count]}</span>}
-        </Link>
-      ))}
+      <div className="side-nav">
+        {ITEMS.map((it) => (
+          <Link key={it.href} href={it.href} className="side-link" aria-current={path === it.href ? 'page' : undefined}>
+            <Icon name={it.icon} size={20} />
+            <span className="side-label">{t(it.label)}</span>
+            {it.count && counts[it.count] > 0 && <span className="side-badge">{counts[it.count]}</span>}
+          </Link>
+        ))}
+      </div>
       <div className="side-foot">
         <p className="side-user">{t('admin_hi', { u: admin })}</p>
-        <Link href="/" className="side-link">
+        <Link href="/" className="side-link" aria-label={t('adm_site')}>
           <Icon name="globe" size={20} />
-          <span>{t('adm_site')}</span>
+          <span className="side-label">{t('adm_site')}</span>
         </Link>
-        <button type="button" className="side-link" onClick={signOut}>
+        <button type="button" className="side-link" aria-label={t('admin_logout')} onClick={signOut}>
           <Icon name="logout" size={20} />
-          <span>{t('admin_logout')}</span>
+          <span className="side-label">{t('admin_logout')}</span>
         </button>
       </div>
     </nav>
