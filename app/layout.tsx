@@ -40,7 +40,8 @@ export const viewport: Viewport = {
 export const revalidate = 3600;
 
 // Applies the saved theme and language before first paint so the page does not flash.
-const PREFS_SCRIPT = `try{var r=document.documentElement,t=JSON.parse(localStorage.getItem('hu.theme'));if(t==='light'||t==='dark')r.setAttribute('data-theme',t);if(JSON.parse(localStorage.getItem('hu.lang'))==='en'){r.lang='en';r.dir='ltr'}}catch(e){}`;
+// Light is the default; dark or "device" only apply when the visitor picked them in Settings.
+const PREFS_SCRIPT = `try{var r=document.documentElement,t=JSON.parse(localStorage.getItem('hu.theme'));if(t==='dark')r.setAttribute('data-theme','dark');else if(t==='auto')r.removeAttribute('data-theme');if(JSON.parse(localStorage.getItem('hu.lang'))==='en'){r.lang='en';r.dir='ltr'}}catch(e){}`;
 
 async function loadLookups(): Promise<Lookups> {
   if (!isConfigured) return DEFAULT_LOOKUPS;
@@ -55,7 +56,7 @@ async function loadLookups(): Promise<Lookups> {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const lookups = await loadLookups();
   return (
-    <html lang="ar" dir="rtl" className={`${plex.variable} ${readex.variable}`} suppressHydrationWarning>
+    <html lang="ar" dir="rtl" data-theme="light" className={`${plex.variable} ${readex.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: PREFS_SCRIPT }} />
       </head>

@@ -58,7 +58,7 @@ export default function AppProvider({
   children: ReactNode;
 }) {
   const [lang, setLangState] = useState<Lang>('ar');
-  const [theme, setThemeState] = useState<Theme>('auto');
+  const [theme, setThemeState] = useState<Theme>('light');
   const [rows, setRows] = useState<Listing[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadErr, setLoadErr] = useState(false);
@@ -76,7 +76,7 @@ export default function AppProvider({
       setLangState(l);
       applyLangToDom(l);
     }
-    const th = LS.get<string>('hu.theme', 'auto');
+    const th = LS.get<string>('hu.theme', 'light');
     if (th === 'light' || th === 'dark' || th === 'auto') setThemeState(th);
     const tk = LS.get<unknown>('hu.tokens', {});
     if (tk && typeof tk === 'object' && !Array.isArray(tk)) {
