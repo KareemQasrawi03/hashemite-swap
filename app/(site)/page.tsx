@@ -4,9 +4,10 @@ import Link from 'next/link';
 import Icon from '@/components/Icon';
 import ListingCard from '@/components/ListingCard';
 import { useApp } from '@/components/AppProvider';
+import { Loader } from '@/components/Spinner';
 
 export default function HomePage() {
-  const { t, listings, openAdd } = useApp();
+  const { t, listings, openAdd, configured, loaded, loadErr } = useApp();
 
   return (
     <div className="wrap">
@@ -59,9 +60,11 @@ export default function HomePage() {
           <Link className="link-btn" href="/market">{t('see_all')}</Link>
         </div>
         <div className="grid">
-          {listings.slice(0, 3).map((l) => (
-            <ListingCard key={l.id} l={l} />
-          ))}
+          {configured && !loaded && !loadErr ? (
+            <Loader label={t('loading')} />
+          ) : (
+            listings.slice(0, 3).map((l) => <ListingCard key={l.id} l={l} />)
+          )}
         </div>
       </div>
 

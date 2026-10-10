@@ -8,6 +8,7 @@ import { createListing, RateLimitError, uploadImage } from '@/lib/data';
 import { resizePhoto } from '@/lib/image';
 import { normPhone } from '@/lib/phone';
 import { LS } from '@/lib/storage';
+import Spinner from './Spinner';
 
 type ErrKey = 'title' | 'desc' | 'want' | 'college' | 'owner' | 'phone' | 'photo' | 'cat' | 'cond';
 
@@ -32,6 +33,7 @@ function AddListingForm() {
   const [photo, setPhoto] = useState<{ blob: Blob; url: string } | null>(null);
   const [errs, setErrs] = useState<Partial<Record<ErrKey, string>>>({});
   const [busy, setBusy] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   // After a successful post the form is replaced by a note that the listing awaits admin review.
   const [posted, setPosted] = useState(false);
@@ -60,6 +62,7 @@ function AddListingForm() {
 
   async function onPhoto(file: File | undefined) {
     if (!file) return;
+    setPhotoBusy(true);
     try {
       const blob = await resizePhoto(file);
       setPhoto({ blob, url: URL.createObjectURL(blob) });
@@ -67,6 +70,7 @@ function AddListingForm() {
     } catch {
       toast(t('photo_fail'));
     }
+    setPhotoBusy(false);
   }
 
   function removePhoto() {
@@ -210,8 +214,8 @@ function AddListingForm() {
             <div className={fieldCls('photo', ' full')}>
               <span className="lbl">{t('f_photo')}</span>
               <div className="photo-row">
-                <button className="btn btn-sm" type="button" onClick={() => fileRef.current?.click()}>
-                  <Icon name="camera" size={18} />
+                <button className="btn btn-sm" type="button" disabled={photoBusy} aria-busy={photoBusy} onClick={() => fileRef.current?.click()}>
+                  {photoBusy ? <Spinner size={18} /> : <Icon name="camera" size={18} />}
                   <span>{t('f_photo_pick')}</span>
                 </button>
                 {photo && (
@@ -228,7 +232,10 @@ function AddListingForm() {
           </div>
           <div className="form-actions" style={{ marginTop: 18 }}>
             <button className="btn" type="button" onClick={closeAdd}>{t('cancel')}</button>
-            <button className="btn btn-primary" type="submit" disabled={busy}>{t('publish')}</button>
+            <button className="btn btn-primary" type="submit" disabled={busy} aria-busy={busy}>
+              {busy && <Spinner size={18} />}
+              <span>{t('publish')}</span>
+            </button>
           </div>
         </form>
       </div>

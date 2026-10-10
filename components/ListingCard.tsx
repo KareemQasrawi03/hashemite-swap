@@ -1,16 +1,18 @@
 'use client';
 
-import { useRef, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import Icon from './Icon';
 import OwnerDeleteButton from './OwnerDeleteButton';
 import { useApp } from './AppProvider';
 import { fmtPhone } from '@/lib/phone';
 import type { Listing } from '@/lib/types';
+import Spinner from './Spinner';
 
 /** `actions` replaces the owner's delete button (used by the admin page). */
 export default function ListingCard({ l, actions }: { l: Listing; actions?: ReactNode }) {
   const { t, nm, pick, lookups, isMine, toast } = useApp();
   const phoneRef = useRef<HTMLSpanElement>(null);
+  const [imgReady, setImgReady] = useState(false);
 
   const cat = lookups.categories.find((c) => c.id === l.category) ?? lookups.categories[lookups.categories.length - 1];
   const col = lookups.colleges.find((c) => c.id === l.college);
@@ -40,8 +42,23 @@ export default function ListingCard({ l, actions }: { l: Listing; actions?: Reac
   return (
     <article className="card">
       <div className="media">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        {l.image_url ? <img src={l.image_url} alt="" loading="lazy" /> : <Icon name={catIcon} size={44} />}
+        {l.image_url ? (
+          <>
+            {!imgReady && <Spinner size={28} />}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={l.image_url}
+              alt=""
+              loading="lazy"
+              className={imgReady ? undefined : 'loading'}
+              ref={(el) => { if (el?.complete && el.naturalWidth) setImgReady(true); }}
+              onLoad={() => setImgReady(true)}
+              onError={() => setImgReady(true)}
+            />
+          </>
+        ) : (
+          <Icon name={catIcon} size={44} />
+        )}
         {l.status === 'pending' ? (
           <span className="tag pending">{t('tag_pending')}</span>
         ) : l.status === 'swapped' ? (

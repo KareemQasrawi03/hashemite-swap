@@ -5,6 +5,7 @@ import { useApp } from '@/components/AppProvider';
 import { adminSignIn, currentAdmin, NotAdminError } from '@/lib/data';
 import { AdminProvider } from './AdminContext';
 import AdminSidebar from './AdminSidebar';
+import Spinner, { Loader } from '@/components/Spinner';
 
 /** Gate for every /admin page: login screen until an admin is signed in, then sidebar + page. */
 export default function AdminShell({ children }: { children: ReactNode }) {
@@ -27,7 +28,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           {!configured ? (
             <div className="notice"><span>{t('not_configured')}</span></div>
           ) : admin === undefined ? (
-            <p className="who">{t('loading')}</p>
+            <Loader label={t('loading')} />
           ) : (
             <LoginForm onDone={setAdmin} />
           )}
@@ -80,7 +81,10 @@ function LoginForm({ onDone }: { onDone: (u: string) => void }) {
         <input id="a-pass" type="password" dir="ltr" autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} />
       </div>
       {err && <p className="err" role="alert">{err}</p>}
-      <button className="btn btn-primary" type="submit" disabled={busy}>{t('admin_login')}</button>
+      <button className="btn btn-primary" type="submit" disabled={busy} aria-busy={busy}>
+        {busy && <Spinner size={18} />}
+        <span>{t('admin_login')}</span>
+      </button>
     </form>
   );
 }

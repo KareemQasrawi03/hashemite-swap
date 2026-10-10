@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react';
 import Icon from '@/components/Icon';
 import ListingCard from '@/components/ListingCard';
 import { useApp } from '@/components/AppProvider';
+import { Loader } from '@/components/Spinner';
+import AsyncButton from '@/components/AsyncButton';
 
 export default function MarketPage() {
   const { t, nm, pick, lookups, listings, loaded, loadErr, configured, refresh, openAdd } = useApp();
@@ -36,7 +38,7 @@ export default function MarketPage() {
   if (!configured) {
     body = null;
   } else if (!loaded) {
-    body = loadErr ? null : <p className="who" style={{ gridColumn: '1/-1' }}>{t('loading')}</p>;
+    body = loadErr ? null : <Loader label={t('loading')} />;
   } else if (!list.length) {
     body = (
       <div className="empty" style={{ gridColumn: '1/-1' }}>
@@ -68,7 +70,7 @@ export default function MarketPage() {
       ) : loadErr ? (
         <div className="notice">
           <span>{t('net_err')}</span>
-          <button className="btn btn-sm" type="button" onClick={() => refresh()}>{t('retry')}</button>
+          <AsyncButton className="btn btn-sm" onClick={refresh}>{t('retry')}</AsyncButton>
         </div>
       ) : null}
 

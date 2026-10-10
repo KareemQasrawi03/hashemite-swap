@@ -220,7 +220,7 @@ p{margin:0}
   .form-grid{grid-template-columns:1fr}
   .sheet{padding:16px}
 }
-@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important; scroll-behavior:auto!important}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; scroll-behavior:auto!important} *:not(.spin svg){animation:none!important} .spin svg{animation-duration:1.6s}}
 .toolbar select{font:inherit; width:100%; min-width:0; min-height:44px; padding:.55rem .8rem; border-radius:10px; border:1px solid var(--line); background:var(--surface); color:var(--fg)}
 a.rail-btn{text-decoration:none}
 .tag.pending{background:var(--swap-soft); color:var(--swap); border-color:transparent}
@@ -308,3 +308,14 @@ a.rail-btn{text-decoration:none}
   .side-foot{margin-top:0; flex-direction:row; border-top:0; padding-top:0; margin-inline-start:auto}
   .admin-main{padding:20px 16px 32px}
 }
+
+/* ---------- Loading ---------- */
+.spin{display:inline-flex; flex:none; line-height:0; color:var(--accent)}
+.btn .spin,.side-link .spin{color:currentColor}
+.spin svg{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader{grid-column:1/-1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:40px 16px; color:var(--muted); font-size:14px; text-align:center}
+.media .spin{position:absolute; inset:0; margin:auto; width:28px; height:28px}
+.media img.loading{opacity:0}
+.media img{transition:opacity .25s}
+.btn[aria-busy="true"]{cursor:progress}

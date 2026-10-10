@@ -6,6 +6,8 @@ import Icon from '@/components/Icon';
 import { useApp } from '@/components/AppProvider';
 import { useAdmin } from '@/components/admin/AdminContext';
 import StatusDonut from '@/components/admin/StatusDonut';
+import { Loader } from '@/components/Spinner';
+import AsyncButton from '@/components/AsyncButton';
 
 const WEEK = 7 * 24 * 60 * 60 * 1000;
 
@@ -41,12 +43,12 @@ export default function AdminDashboard() {
       {loadErr && (
         <div className="notice">
           <span>{t('net_err')}</span>
-          <button className="btn btn-sm" type="button" onClick={load}>{t('retry')}</button>
+          <AsyncButton className="btn btn-sm" onClick={load}>{t('retry')}</AsyncButton>
         </div>
       )}
 
       {rows === null ? (
-        !loadErr && <p className="who">{t('loading')}</p>
+        !loadErr && <Loader label={t('loading')} />
       ) : (
         <>
           <div className="kpis">
