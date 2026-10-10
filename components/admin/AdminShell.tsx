@@ -18,7 +18,6 @@ export default function AdminShell({ children }: { children: ReactNode }) {
     currentAdmin().then(setAdmin, () => setAdmin(null));
   }, [configured]);
 
-  
   if (!configured || admin == null) {
     return (
       <div className="admin-gate">
